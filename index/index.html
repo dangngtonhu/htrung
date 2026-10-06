@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Orchard: Sóc Pi & Nông Trại Cây Nhị Phân</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            font-family: 'Fredoka', 'Nunito', cursive, sans-serif;
+            background: linear-gradient(180deg, #6ee7b7 0%, #38bdf8 45%, #86efac 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .wood-board {
+            background: linear-gradient(180deg, #fef08a 0%, #fde047 100%);
+            border: 4px solid #b45309;
+            box-shadow: 0 8px 0 #92400e, 0 14px 20px rgba(0,0,0,0.18);
+        }
+        .wood-button {
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 5px 0 #b45309, 0 8px 12px rgba(0,0,0,0.15);
+        }
+        .wood-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 0 #b45309, 0 12px 16px rgba(0,0,0,0.2);
+        }
+        .wood-button:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #b45309, 0 3px 6px rgba(0,0,0,0.2);
+        }
+        .bubbly-card {
+            background: rgba(255, 255, 255, 0.94);
+            border: 4px solid #84cc16;
+            box-shadow: 0 10px 0 #4d7c0f, 0 15px 30px rgba(0,0,0,0.1);
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(2deg); }
+        }
+        @keyframes wiggleSquirrel {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.1) rotate(-6deg); }
+            75% { transform: scale(1.1) rotate(6deg); }
+        }
+        @keyframes appleBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+        @keyframes pulseTarget {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px #fbbf24); }
+            50% { transform: scale(1.15); filter: drop-shadow(0 0 16px #f59e0b); }
+        }
+        .floating-cloud {
+            animation: floatSlow 6s ease-in-out infinite;
+        }
+        .squirrel-jump {
+            animation: wiggleSquirrel 0.45s ease-in-out;
+        }
+        .target-apple {
+            animation: pulseTarget 1.2s infinite ease-in-out;
+        }
+        .bouncing-apple {
+            animation: appleBounce 1.5s infinite ease-in-out;
+        }
+        /* Branch and Nut transitions */
+        .tree-branch {
+            stroke: #78350f;
+            stroke-linecap: round;
+            filter: drop-shadow(0 3px 2px rgba(0,0,0,0.15));
+            transition: all 0.4s ease;
+        }
+        .acorn-node {
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .acorn-node:hover {
+            transform: scale(1.18);
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen text-amber-950">
+
+    <header class="w-full px-4 py-3 bg-white/80 backdrop-blur-md border-b-4 border-emerald-400 sticky top-0 z-40 shadow-md">
+        <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <!-- Brand & Mascot Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-amber-400 border-2 border-amber-600 flex items-center justify-center text-3xl shadow-inner cursor-pointer transform hover:rotate-12 transition">
+                    🐿️
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-black tracking-tight text-amber-900 flex items-center gap-1.5">
+                        Binary Orchard <span class="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold">Nông Trại Quả Mọng</span>
+                    </h1>
+                    <p class="text-xs font-bold text-emerald-700">Đồng hành cùng Sóc Pi leo Cây Nhị Phân Thần Kỳ</p>
+                </div>
+            </div>
+
+            <!-- Mini Game Mode Tabs -->
+            <div class="flex items-center gap-1.5 bg-amber-100/90 p-1.5 rounded-2xl border-2 border-amber-300">
+                <button onclick="switchMode('hunter')" id="tab-hunter" class="wood-button px-3.5 py-1.5 rounded-xl font-black text-xs sm:text-sm bg-amber-400 text-amber-950 border border-amber-600 flex items-center gap-1">
+                    <span>🏃 Sóc Leo Cây</span>
+                </button>
+                <button onclick="switchMode('traversal')" id="tab-traversal" class="wood-button px-3.5 py-1.5 rounded-xl font-bold text-xs sm:text-sm bg-white/80 hover:bg-white text-emerald-800 border border-emerald-400 flex items-center gap-1">
+                    <span>🎆 Pháo Hoa Duyệt Cây</span>
+                </button>
+                <button onclick="switchMode('catch')" id="tab-catch" class="wood-button px-3.5 py-1.5 rounded-xl font-bold text-xs sm:text-sm bg-white/80 hover:bg-white text-sky-800 border border-sky-400 flex items-center gap-1">
+                    <span>🍎 Ném Táo Trồng Cây</span>
+                </button>
+            </div>
+
+            <!-- Sound & Help buttons -->
+            <div class="flex items-center gap-2">
+                <button onclick="toggleBgm()" id="bgm-btn" class="w-10 h-10 rounded-xl bg-emerald-400 hover:bg-emerald-300 border-2 border-emerald-600 flex items-center justify-center text-white text-lg shadow-sm transition" title="Nhạc nền BGM">
+                    <i class="fa-solid fa-music"></i>
+                </button>
+                <button onclick="openHelpModal()" class="w-10 h-10 rounded-xl bg-amber-400 hover:bg-amber-300 border-2 border-amber-600 flex items-center justify-center text-amber-950 text-lg shadow-sm transition" title="Sổ tay bí kíp">
+                    <i class="fa-solid fa-book"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-5 flex flex-col gap-4">
+        
+        <!-- Score Bar & Cute Status Header -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="wood-board rounded-2xl p-2.5 flex items-center gap-3">
+                <div class="text-3xl">⭐</div>
+                <div>
+                    <div class="text-[11px] font-black uppercase text-amber-800">Điểm Quả Ngọt</div>
+                    <div id="stat-score" class="text-2xl font-black text-amber-950">0</div>
+                </div>
+            </div>
+
+            <div class="wood-board rounded-2xl p-2.5 flex items-center gap-3">
+                <div class="text-3xl">🔥</div>
+                <div>
+                    <div class="text-[11px] font-black uppercase text-amber-800">Chuỗi Combo</div>
+                    <div id="stat-combo" class="text-2xl font-black text-rose-600">x0</div>
+                </div>
+            </div>
+
+            <div class="wood-board rounded-2xl p-2.5 flex items-center gap-3">
+                <div class="text-3xl">🌳</div>
+                <div>
+                    <div class="text-[11px] font-black uppercase text-amber-800">Tổng Số Quả</div>
+                    <div id="stat-nodes" class="text-2xl font-black text-emerald-800">7</div>
+                </div>
+            </div>
+
+            <div class="wood-board rounded-2xl p-2.5 flex items-center gap-3">
+                <div class="text-3xl">📏</div>
+                <div>
+                    <div class="text-[11px] font-black uppercase text-amber-800">Chiều Cao Cây</div>
+                    <div id="stat-height" class="text-2xl font-black text-sky-800">3</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Central Play Area: Tree Canvas + Mission Action Dashboard -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1">
+            
+            <!-- Orchard Tree Canvas (8 Cols) -->
+            <div class="lg:col-span-8 bubbly-card rounded-3xl p-4 flex flex-col relative overflow-hidden min-h-[460px]">
+                
+                <!-- Floating Sky Decor -->
+                <div class="absolute top-2 left-4 text-2xl floating-cloud pointer-events-none opacity-80">☁️</div>
+                <div class="absolute top-4 right-8 text-2xl floating-cloud pointer-events-none opacity-80" style="animation-delay: 2s;">☁️</div>
+                <div class="absolute top-12 left-1/3 text-xl floating-cloud pointer-events-none opacity-70" style="animation-delay: 3.5s;">🕊️</div>
+
+                <!-- Dynamic Info Banner inside Canvas -->
+                <div class="flex items-center justify-between z-10 mb-2">
+                    <span id="canvas-hint" class="bg-amber-100 text-amber-900 border-2 border-amber-300 px-3 py-1 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm">
+                        <span>💡</span> <span id="hint-text">Bấm nút điều khiển để Sóc Pi nhảy sang nhánh con!</span>
+                    </span>
+                    <button onclick="regenerateRandomTree()" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 text-xs font-black px-3 py-1 rounded-xl border border-emerald-300 transition flex items-center gap-1">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Đổi Vườn Mới
+                    </button>
+                </div>
+
+                <!-- SVG Interactive Tree Canvas -->
+                <div class="w-full flex-1 flex items-center justify-center relative min-h-[380px]" id="canvas-wrapper">
+                    <svg id="tree-svg" class="w-full h-full min-w-[500px] min-h-[380px]" viewBox="0 0 800 420"></svg>
+                </div>
+
+                <!-- Floating Feedback Pop-up -->
+                <div id="float-toast" class="absolute bottom-6 left-1/2 -translate-x-1/2 opacity-0 pointer-events-none transition-all duration-300 px-5 py-2.5 rounded-2xl text-base font-black shadow-2xl z-30 flex items-center gap-2">
+                    🌟 Tuyệt đỉnh!
+                </div>
+            </div>
+
+            <!-- Right Mission & Control Dashboard (4 Cols) -->
+            <div class="lg:col-span-4 flex flex-col gap-4">
+                
+                <!-- Main Mission Panel -->
+                <div id="mission-card" class="bubbly-card rounded-3xl p-5 flex flex-col justify-between flex-1 border-4 border-amber-400">
+                    <!-- Populated dynamically based on Mode -->
+                </div>
+
+                <!-- Mascot Speech Bubble -->
+                <div class="bg-white/95 rounded-2xl p-4 border-3 border-emerald-400 shadow-md flex items-center gap-3">
+                    <div id="mascot-avatar" class="text-4xl filter drop-shadow">🐿️</div>
+                    <div class="text-xs font-extrabold text-slate-700 leading-snug">
+                        <span class="text-emerald-600 block mb-0.5">Lời nhắc của Sóc Pi:</span>
+                        <span id="mascot-tip">"Nhánh bên TRÁI luôn gom những quả có số NHỎ HƠN, còn cành PHẢI gom quả LỚN HƠN nha bạn nhỏ!"</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <div id="help-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-amber-50 max-w-lg w-full rounded-3xl p-6 border-4 border-amber-500 shadow-2xl max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between border-b-2 border-amber-200 pb-3 mb-3">
+                <h3 class="text-xl font-black text-amber-900 flex items-center gap-2">
+                    📖 Bí Kíp Rừng Nhị Phân
+                </h3>
+                <button onclick="closeHelpModal()" class="w-8 h-8 rounded-full bg-rose-400 text-white font-black hover:bg-rose-500 transition">✕</button>
+            </div>
+            
+            <div class="overflow-y-auto space-y-3 pr-1 text-sm text-amber-950">
+                <div class="bg-white p-3 rounded-2xl border-2 border-amber-200">
+                    <h4 class="font-black text-emerald-700 flex items-center gap-1.5 text-base">🌱 1. Cây Nhị Phân là gì?</h4>
+                    <p class="text-xs mt-1 leading-relaxed">
+                        Cũng giống như một thân cây mọc ngược! Nút trên cùng gọi là <strong>Gốc (Root)</strong>. Từ mỗi quả chỉ được mọc tối đa <strong>2 cành con</strong>: Cành Trái và Cành Phải. Những quả ở tận cùng không có con gọi là <strong>Lá (Leaf)</strong>.
+                    </p>
+                </div>
+
+                <div class="bg-white p-3 rounded-2xl border-2 border-amber-200">
+                    <h4 class="font-black text-amber-700 flex items-center gap-1.5 text-base">🌰 2. Cây Nhị Phân Tìm Kiếm (BST)</h4>
+                    <p class="text-xs mt-1 leading-relaxed">
+                        Quy tắc vàng của muông thú: Quả nằm bên <strong>Cành Trái</strong> luôn nhỏ hơn quả mẹ, còn quả ở <strong>Cành Phải</strong> luôn to hơn quả mẹ!
+                    </p>
+                </div>
+
+                <div class="bg-white p-3 rounded-2xl border-2 border-amber-200">
+                    <h4 class="font-black text-sky-700 flex items-center gap-1.5 text-base">🎶 3. Nhịp Điệu Duyệt Cây</h4>
+                    <ul class="text-xs mt-1 list-disc list-inside space-y-1">
+                        <li><strong>In-order (LNR):</strong> Trái &rarr; Gốc &rarr; Phải (Tạo ra dãy số xếp thứ tự từ bé đến lớn).</li>
+                        <li><strong>Pre-order (NLR):</strong> Gốc &rarr; Trái &rarr; Phải.</li>
+                        <li><strong>Post-order (LRN):</strong> Trái &rarr; Phải &rarr; Gốc.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-2 border-t border-amber-200 flex justify-center">
+                <button onclick="closeHelpModal()" class="wood-button px-6 py-2 bg-amber-400 text-amber-950 font-black rounded-xl border border-amber-600">
+                    Sẵn Sàng Chơi Tiếp! 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let audioCtx = null;
+        let isBgmPlaying = false;
+        let bgmTimer = null;
+        const notesScale = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25]; // C4 -> C5
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        // Cute sound effects generator
+        function playChiptune(soundType, noteIndex = 0) {
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (soundType === 'boing') {
+                    // Cartoon jump bounce
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(700, now + 0.12);
+                    osc.frequency.exponentialRampToValueAtTime(350, now + 0.22);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (soundType === 'ding') {
+                    // Melodic note tone
+                    osc.type = 'triangle';
+                    const freq = notesScale[noteIndex % notesScale.length];
+                    osc.frequency.setValueAtTime(freq, now);
+                    gain.gain.setValueAtTime(0.28, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (soundType === 'win') {
+                    // Victory arpeggio
+                    [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+                        const o = ctx.createOscillator();
+                        const g = ctx.createGain();
+                        o.connect(g);
+                        g.connect(ctx.destination);
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(f, now + i * 0.08);
+                        g.gain.setValueAtTime(0.2, now + i * 0.08);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.25);
+                        o.start(now + i * 0.08);
+                        o.stop(now + i * 0.08 + 0.25);
+                    });
+                } else if (soundType === 'wrong') {
+                    // Funny bonk sound
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.exponentialRampToValueAtTime(80, now + 0.18);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (soundType === 'plop') {
+                    // Apple dropping
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(280, now + 0.1);
+                    gain.gain.setValueAtTime(0.35, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                }
+            } catch (err) {
+                console.log("Audio not allowed yet:", err);
+            }
+        }
+
+        // Joyful Background Melody synthesized live
+        function toggleBgm() {
+            const btn = document.getElementById('bgm-btn');
+            if (isBgmPlaying) {
+                isBgmPlaying = false;
+                clearInterval(bgmTimer);
+                btn.classList.replace('bg-rose-500', 'bg-emerald-400');
+                btn.innerHTML = '<i class="fa-solid fa-music"></i>';
+                showToast("Nhạc nền: TẮT 🔇", "info");
+            } else {
+                isBgmPlaying = true;
+                btn.classList.replace('bg-emerald-400', 'bg-rose-500');
+                btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+                startBgmLoop();
+                showToast("Nhạc nền: BẬT 🎶", "info");
+            }
+        }
+
+        function startBgmLoop() {
+            const melody = [0, 2, 4, 2, 0, 4, 5, 4, 2, 4, 0];
+            let step = 0;
+            bgmTimer = setInterval(() => {
+                if (!isBgmPlaying) return;
+                try {
+                    const ctx = getAudioContext();
+                    const now = ctx.currentTime;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(notesScale[melody[step % melody.length]] * 0.5, now);
+                    gain.gain.setValueAtTime(0.04, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                    osc.start(now);
+                    osc.stop(now + 0.22);
+                    step++;
+                } catch(e){}
+            }, 260);
+        }
+    </script>
+
+    <script>
+        class TreeNode {
+            constructor(val) {
+                this.val = val;
+                this.left = null;
+                this.right = null;
+                this.x = 0;
+                this.y = 0;
+                this.id = 'node_' + Math.random().toString(36).substr(2, 7);
+            }
+        }
+
+        class OrchardBST {
+            constructor() {
+                this.root = null;
+            }
+
+            insert(val) {
+                const node = new TreeNode(val);
+                if (!this.root) {
+                    this.root = node;
+                    return true;
+                }
+                let cur = this.root;
+                while (cur) {
+                    if (val === cur.val) return false;
+                    if (val < cur.val) {
+                        if (!cur.left) {
+                            cur.left = node;
+                            return true;
+                        }
+                        cur = cur.left;
+                    } else {
+                        if (!cur.right) {
+                            cur.right = node;
+                            return true;
+                        }
+                        cur = cur.right;
+                    }
+                }
+            }
+
+            getInOrder(node = this.root, res = []) {
+                if (node) {
+                    this.getInOrder(node.left, res);
+                    res.push(node.val);
+                    this.getInOrder(node.right, res);
+                }
+                return res;
+            }
+
+            getPreOrder(node = this.root, res = []) {
+                if (node) {
+                    res.push(node.val);
+                    this.getPreOrder(node.left, res);
+                    this.getPreOrder(node.right, res);
+                }
+                return res;
+            }
+
+            getPostOrder(node = this.root, res = []) {
+                if (node) {
+                    this.getPostOrder(node.left, res);
+                    this.getPostOrder(node.right, res);
+                    res.push(node.val);
+                }
+                return res;
+            }
+
+            getHeight(node = this.root) {
+                if (!node) return 0;
+                return 1 + Math.max(this.getHeight(node.left), this.getHeight(node.right));
+            }
+
+            getCount(node = this.root) {
+                if (!node) return 0;
+                return 1 + this.getCount(node.left) + this.getCount(node.right);
+            }
+        }
+    </script>
+
+    <script>
+        let currentMode = 'hunter'; // 'hunter' | 'traversal' | 'catch'
+        let orchard = new OrchardBST();
+        let score = 0;
+        let combo = 0;
+
+        // Hunter Mode Variables
+        let squirrelNode = null;
+        let hunterTargetVal = null;
+        let hunterSteps = 0;
+
+        // Traversal Mode Variables
+        let traversalType = 'LNR';
+        let traversalQueue = [];
+        let traversalIndex = 0;
+        let traversedSet = new Set();
+
+        // Catch/Planting Mode Variables
+        let fallingAppleVal = null;
+        let currentTargetParent = null;
+
+        const svg = document.getElementById('tree-svg');
+
+        // Layout tree nodes coordinates with soft natural curves
+        function layoutTree(node, x, y, xSpread) {
+            if (!node) return;
+            node.x = x;
+            node.y = y;
+            const nextSpread = xSpread * 0.52;
+            const yDist = 72;
+            if (node.left) layoutTree(node.left, x - xSpread, y + yDist, nextSpread);
+            if (node.right) layoutTree(node.right, x + xSpread, y + yDist, nextSpread);
+        }
+
+        // Render Tree with cute cartoon graphics, fruits & squirrel
+        function renderTreeCanvas() {
+            svg.innerHTML = '';
+            if (!orchard.root) return;
+
+            layoutTree(orchard.root, 400, 60, 185);
+
+            // 1. Draw Tree Branches
+            function drawBranches(node) {
+                if (!node) return;
+                if (node.left) {
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const mx = (node.x + node.left.x) / 2;
+                    const my = (node.y + node.left.y) / 2 + 10;
+                    path.setAttribute('d', `M ${node.x} ${node.y} Q ${mx} ${my} ${node.left.x} ${node.left.y}`);
+                    path.setAttribute('class', 'tree-branch');
+                    path.setAttribute('stroke-width', '10');
+                    path.setAttribute('fill', 'none');
+                    svg.appendChild(path);
+                    drawBranches(node.left);
+                }
+                if (node.right) {
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const mx = (node.x + node.right.x) / 2;
+                    const my = (node.y + node.right.y) / 2 + 10;
+                    path.setAttribute('d', `M ${node.x} ${node.y} Q ${mx} ${my} ${node.right.x} ${node.right.y}`);
+                    path.setAttribute('class', 'tree-branch');
+                    path.setAttribute('stroke-width', '10');
+                    path.setAttribute('fill', 'none');
+                    svg.appendChild(path);
+                    drawBranches(node.right);
+                }
+            }
+            drawBranches(orchard.root);
+
+            // 2. Draw Fruit Nodes
+            function drawNodes(node) {
+                if (!node) return;
+
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('class', 'acorn-node group');
+                g.onclick = () => onNodeClicked(node);
+
+                const isTarget = (currentMode === 'hunter' && node.val === hunterTargetVal);
+                const isSquirrelHere = (squirrelNode && squirrelNode.val === node.val);
+                const isTraversed = traversedSet.has(node.val);
+
+                // Leaf decor on top of fruit
+                const leaf = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                leaf.setAttribute('d', `M ${node.x} ${node.y - 20} C ${node.x - 12} ${node.y - 32} ${node.x + 12} ${node.y - 32} ${node.x} ${node.y - 20}`);
+                leaf.setAttribute('fill', '#22c55e');
+                g.appendChild(leaf);
+
+                // Fruit body circle
+                const fruit = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                fruit.setAttribute('cx', node.x);
+                fruit.setAttribute('cy', node.y);
+                fruit.setAttribute('r', '24');
+                fruit.setAttribute('stroke-width', '4');
+
+                if (isTarget) {
+                    fruit.setAttribute('fill', '#f59e0b');
+                    fruit.setAttribute('stroke', '#d97706');
+                    fruit.setAttribute('class', 'target-apple');
+                } else if (isTraversed) {
+                    fruit.setAttribute('fill', '#a7f3d0');
+                    fruit.setAttribute('stroke', '#059669');
+                } else if (node === orchard.root) {
+                    fruit.setAttribute('fill', '#fb7185');
+                    fruit.setAttribute('stroke', '#e11d48');
+                } else {
+                    fruit.setAttribute('fill', '#fed7aa');
+                    fruit.setAttribute('stroke', '#f97316');
+                }
+                g.appendChild(fruit);
+
+                // Number badge
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', node.x);
+                text.setAttribute('y', node.y + 6);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', '#7c2d12');
+                text.setAttribute('font-weight', '900');
+                text.setAttribute('font-size', '15');
+                text.setAttribute('pointer-events', 'none');
+                text.textContent = node.val;
+                g.appendChild(text);
+
+                // Squirrel Mascot positioning
+                if (isSquirrelHere) {
+                    const squirrel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    squirrel.setAttribute('x', node.x + 18);
+                    squirrel.setAttribute('y', node.y - 18);
+                    squirrel.setAttribute('font-size', '28');
+                    squirrel.setAttribute('class', 'squirrel-jump');
+                    squirrel.textContent = '🐿️';
+                    g.appendChild(squirrel);
+                }
+
+                // Golden Acorn Icon if Target
+                if (isTarget && !isSquirrelHere) {
+                    const crown = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    crown.setAttribute('x', node.x);
+                    crown.setAttribute('y', node.y - 28);
+                    crown.setAttribute('text-anchor', 'middle');
+                    crown.setAttribute('font-size', '18');
+                    crown.textContent = '⭐';
+                    g.appendChild(crown);
+                }
+
+                svg.appendChild(g);
+
+                drawNodes(node.left);
+                drawNodes(node.right);
+            }
+            drawNodes(orchard.root);
+
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('stat-score').textContent = score;
+            document.getElementById('stat-combo').textContent = `x${combo}`;
+            document.getElementById('stat-nodes').textContent = orchard.getCount();
+            document.getElementById('stat-height').textContent = orchard.getHeight();
+        }
+
+        function showToast(msg, type = "success") {
+            const toast = document.getElementById('float-toast');
+            toast.textContent = msg;
+            if (type === "success") {
+                toast.className = 'absolute bottom-6 left-1/2 -translate-x-1/2 opacity-100 bg-amber-400 text-amber-950 border-3 border-amber-600 px-6 py-2 rounded-2xl text-base font-black shadow-2xl z-30 transition-all duration-300';
+            } else if (type === "error") {
+                toast.className = 'absolute bottom-6 left-1/2 -translate-x-1/2 opacity-100 bg-rose-500 text-white border-3 border-rose-700 px-6 py-2 rounded-2xl text-base font-black shadow-2xl z-30 transition-all duration-300';
+            } else {
+                toast.className = 'absolute bottom-6 left-1/2 -translate-x-1/2 opacity-100 bg-sky-400 text-sky-950 border-3 border-sky-600 px-6 py-2 rounded-2xl text-base font-black shadow-2xl z-30 transition-all duration-300';
+            }
+            setTimeout(() => {
+                toast.classList.replace('opacity-100', 'opacity-0');
+            }, 1800);
+        }
+
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { y: 0.7 }
+                });
+            }
+        }
+    </script>
+
+    <script>
+        function initHunterMode() {
+            currentMode = 'hunter';
+            orchard = new OrchardBST();
+            [50, 25, 75, 12, 37, 62, 88].forEach(v => orchard.insert(v));
+
+            document.getElementById('hint-text').textContent = "Quan sát số quả đích và chọn cành TRÁI (<) hoặc cành PHẢI (>) để Pi nhảy!";
+            document.getElementById('mascot-tip').textContent = "Nếu hạt dẻ cần tìm NHỎ HƠN quả hiện tại, tớ sẽ nhảy sang Trái! Nếu LỚN HƠN, tớ sẽ nhảy sang Phải!";
+
+            newHunterQuest();
+        }
+
+        function newHunterQuest() {
+            const allNodes = orchard.getInOrder();
+            const candidates = allNodes.filter(n => n !== orchard.root.val);
+            hunterTargetVal = candidates[Math.floor(Math.random() * candidates.length)] || allNodes[0];
+            squirrelNode = orchard.root;
+            hunterSteps = 0;
+
+            renderHunterDashboard();
+            renderTreeCanvas();
+        }
+
+        function renderHunterDashboard() {
+            const card = document.getElementById('mission-card');
+            card.innerHTML = `
+                <div>
+                    <div class="flex items-center justify-between border-b-2 border-amber-300 pb-2 mb-3">
+                        <span class="text-xs font-black uppercase text-amber-800">Nhiệm Vụ Leo Cây</span>
+                        <span class="bg-amber-400 text-amber-950 px-3 py-0.5 rounded-full text-xs font-black border border-amber-600">
+                            Màn Tìm Kiếm
+                        </span>
+                    </div>
+
+                    <div class="text-center py-2 bg-amber-100/90 rounded-2xl border-2 border-amber-300 mb-4">
+                        <div class="text-xs font-bold text-amber-800">Hạt dẻ vàng cần tìm:</div>
+                        <div class="text-3xl font-black text-amber-950 my-1 animate-bounce">⭐ ${hunterTargetVal} ⭐</div>
+                        <div class="text-[11px] font-bold text-emerald-800">
+                            Sóc Pi đang ở quả: <span class="text-rose-600 font-extrabold text-sm">${squirrelNode ? squirrelNode.val : 'N/A'}</span>
+                        </div>
+                    </div>
+
+                    <p class="text-xs font-bold text-amber-900 mb-3 text-center">
+                        ${hunterTargetVal < squirrelNode.val 
+                            ? `Vì ${hunterTargetVal} &lt; ${squirrelNode.val} &rarr; Phải rẽ sang Trái!` 
+                            : `Vì ${hunterTargetVal} &gt; ${squirrelNode.val} &rarr; Phải rẽ sang Phải!`
+                        }
+                    </p>
+
+                    <!-- Jump Action Buttons -->
+                    <div class="grid grid-cols-2 gap-3 mb-2">
+                        <button onclick="squirrelJump('left')" class="wood-button p-3 rounded-2xl bg-amber-400 text-amber-950 font-black text-sm border-2 border-amber-600 flex flex-col items-center">
+                            <span class="text-2xl mb-1">👈</span>
+                            <span>Cành Trái (&lt;)</span>
+                        </button>
+                        <button onclick="squirrelJump('right')" class="wood-button p-3 rounded-2xl bg-orange-400 text-amber-950 font-black text-sm border-2 border-orange-600 flex flex-col items-center">
+                            <span class="text-2xl mb-1">👉</span>
+                            <span>Cành Phải (&gt;)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button onclick="newHunterQuest()" class="text-xs font-black text-amber-700 underline hover:text-amber-900">
+                        🔄 Đổi mục tiêu khác
+                    </button>
+                </div>
+            `;
+        }
+
+        function squirrelJump(dir) {
+            if (!squirrelNode) return;
+            const curVal = squirrelNode.val;
+            let targetDir = (hunterTargetVal < curVal) ? 'left' : 'right';
+
+            if (dir === targetDir) {
+                // Correct direction
+                playChiptune('boing');
+                if (dir === 'left') squirrelNode = squirrelNode.left;
+                else squirrelNode = squirrelNode.right;
+
+                hunterSteps++;
+                combo++;
+
+                if (squirrelNode.val === hunterTargetVal) {
+                    playChiptune('win');
+                    score += 30 + combo * 5;
+                    triggerConfetti();
+                    showToast(`🎉 Pi đã nhặt được hạt dẻ ${hunterTargetVal}! (+${30 + combo * 5} điểm)`);
+                    setTimeout(newHunterQuest, 1200);
+                } else {
+                    showToast("Nhảy cành đúng rồi! Tiếp tục nào 🐿️", "info");
+                    renderHunterDashboard();
+                    renderTreeCanvas();
+                }
+            } else {
+                // Wrong direction
+                playChiptune('wrong');
+                combo = 0;
+                showToast(`Ối! ${hunterTargetVal} ${hunterTargetVal < curVal ? '<' : '>'} ${curVal}, cành kia mới đúng!`, "error");
+                updateStats();
+            }
+        }
+    </script>
+
+    <script>
+        function initTraversalMode() {
+            currentMode = 'traversal';
+            orchard = new OrchardBST();
+            [40, 20, 60, 10, 30, 50, 70].forEach(v => orchard.insert(v));
+            traversalType = 'LNR';
+            document.getElementById('hint-text').textContent = "Bấm trực tiếp vào quả trên cây theo đúng thứ tự duyệt để bắn pháo hoa âm nhạc!";
+            document.getElementById('mascot-tip').textContent = "Duyệt In-Order (LNR) sẽ đi theo thứ tự: hết cành Trái &rarr; Quả Gốc &rarr; cành Phải. Nhìn số tăng dần thích mắt lắm!";
+
+            setupTraversalPuzzle();
+        }
+
+        function setupTraversalPuzzle() {
+            traversedSet.clear();
+            traversalIndex = 0;
+
+            if (traversalType === 'LNR') traversalQueue = orchard.getInOrder();
+            else if (traversalType === 'NLR') traversalQueue = orchard.getPreOrder();
+            else if (traversalType === 'LRN') traversalQueue = orchard.getPostOrder();
+
+            renderTraversalDashboard();
+            renderTreeCanvas();
+        }
+
+        function renderTraversalDashboard() {
+            const card = document.getElementById('mission-card');
+            
+            const badgesHtml = traversalQueue.map((val, idx) => {
+                const done = idx < traversalIndex;
+                const active = idx === traversalIndex;
+                return `
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs border-2 transition-all ${
+                        done ? 'bg-emerald-400 border-emerald-600 text-slate-950 scale-95' 
+                        : active ? 'bg-amber-400 border-amber-600 text-amber-950 animate-bounce scale-110' 
+                        : 'bg-white border-amber-200 text-amber-400'
+                    }">
+                        ${done ? val : active ? '?' : '•'}
+                    </div>
+                `;
+            }).join('');
+
+            card.innerHTML = `
+                <div>
+                    <div class="flex items-center justify-between border-b-2 border-amber-300 pb-2 mb-3">
+                        <span class="text-xs font-black uppercase text-amber-800">Giai Điệu Duyệt Cây</span>
+                        <span class="text-xs font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                            ${traversalIndex}/${traversalQueue.length} Quả
+                        </span>
+                    </div>
+
+                    <!-- Type Selector Buttons -->
+                    <div class="grid grid-cols-3 gap-1.5 mb-3">
+                        <button onclick="setTravMode('LNR')" class="wood-button py-1.5 rounded-xl font-black text-xs ${traversalType==='LNR'?'bg-emerald-400 text-slate-950':'bg-white text-emerald-800'} border border-emerald-500">
+                            In-order
+                        </button>
+                        <button onclick="setTravMode('NLR')" class="wood-button py-1.5 rounded-xl font-black text-xs ${traversalType==='NLR'?'bg-emerald-400 text-slate-950':'bg-white text-emerald-800'} border border-emerald-500">
+                            Pre-order
+                        </button>
+                        <button onclick="setTravMode('LRN')" class="wood-button py-1.5 rounded-xl font-black text-xs ${traversalType==='LRN'?'bg-emerald-400 text-slate-950':'bg-white text-emerald-800'} border border-emerald-500">
+                            Post-order
+                        </button>
+                    </div>
+
+                    <div class="p-2.5 bg-amber-100/90 rounded-2xl border-2 border-amber-300 mb-3 text-xs font-bold text-center">
+                        <span class="text-amber-800 block text-[11px]">Công thức đang chọn:</span>
+                        <span class="text-amber-950 font-black">
+                            ${traversalType === 'LNR' ? 'Trái (L) &rarr; Gốc (N) &rarr; Phải (R)' : traversalType === 'NLR' ? 'Gốc (N) &rarr; Trái (L) &rarr; Phải (R)' : 'Trái (L) &rarr; Phải (R) &rarr; Gốc (N)'}
+                        </span>
+                    </div>
+
+                    <!-- Rhythm note badges -->
+                    <div class="flex flex-wrap gap-1.5 justify-center py-2 bg-amber-50 rounded-2xl border border-amber-200 mb-3">
+                        ${badgesHtml}
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button onclick="setupTraversalPuzzle()" class="wood-button px-4 py-2 bg-amber-400 text-amber-950 font-black rounded-xl text-xs border border-amber-600">
+                        🔄 Chơi Lại Lượt Này
+                    </button>
+                </div>
+            `;
+        }
+
+        function setTravMode(type) {
+            traversalType = type;
+            playChiptune('boing');
+            setupTraversalPuzzle();
+        }
+    </script>
+
+    <script>
+        function initCatchMode() {
+            currentMode = 'catch';
+            orchard = new OrchardBST();
+            [50, 25, 75].forEach(v => orchard.insert(v));
+
+            document.getElementById('hint-text').textContent = "Quả táo trên trời rơi xuống! Chọn đúng cành để gắn vào cây theo chuẩn BST!";
+            document.getElementById('mascot-tip').textContent = "Nếu quả nhỏ hơn gốc thì tìm chỗ bên Trái, nếu lớn hơn thì tìm chỗ bên Phải để gieo hạt nha!";
+
+            nextFallingApple();
+        }
+
+        function nextFallingApple() {
+            const existing = orchard.getInOrder();
+            let candidate;
+            do {
+                candidate = Math.floor(Math.random() * 88) + 10;
+            } while (existing.includes(candidate));
+
+            fallingAppleVal = candidate;
+            renderCatchDashboard();
+            renderTreeCanvas();
+        }
+
+        function renderCatchDashboard() {
+            const card = document.getElementById('mission-card');
+            card.innerHTML = `
+                <div>
+                    <div class="flex items-center justify-between border-b-2 border-amber-300 pb-2 mb-3">
+                        <span class="text-xs font-black uppercase text-amber-800">Trồng Táo Vào Cây</span>
+                        <span class="bg-sky-400 text-sky-950 px-2.5 py-0.5 rounded-full text-xs font-black border border-sky-600">
+                            Thả Quả Mọng
+                        </span>
+                    </div>
+
+                    <div class="text-center py-4 bg-sky-100 rounded-2xl border-2 border-sky-300 mb-4">
+                        <div class="text-xs font-bold text-sky-800">Quả táo thần kỳ rơi xuống:</div>
+                        <div class="text-4xl font-black text-rose-600 my-2 bouncing-apple">🍎 ${fallingAppleVal}</div>
+                        <div class="text-[11px] font-bold text-sky-900">
+                            Hãy xem quả này nên gắn vào cành của nút nào!
+                        </div>
+                    </div>
+
+                    <p class="text-xs font-bold text-amber-950 text-center mb-4 leading-relaxed">
+                        Bấm nút <strong>"Gieo Quả Ngay"</strong> để xem thuật toán tự động tìm đường hạ cánh chính xác vào nhánh cây!
+                    </p>
+
+                    <button onclick="plantFallingApple()" class="wood-button w-full py-3 bg-emerald-400 text-slate-950 font-black rounded-2xl text-sm border-2 border-emerald-600 flex items-center justify-center gap-2">
+                        <span>🌱 Gieo Quả Ngay</span>
+                    </button>
+                </div>
+
+                <div class="text-center mt-3">
+                    <button onclick="clearTreeGrow()" class="text-xs font-black text-rose-600 hover:text-rose-800">
+                        🗑️ Đốn cây trồng lại từ đầu
+                    </button>
+                </div>
+            `;
+        }
+
+        function plantFallingApple() {
+            if (orchard.getCount() >= 13) {
+                showToast("Vườn cây đã đầy sum suê rồi! Hãy đốn cây trồng lại nhé!", "info");
+                return;
+            }
+            playChiptune('plop');
+            orchard.insert(fallingAppleVal);
+            score += 20;
+            combo++;
+            triggerConfetti();
+            showToast(`🍎 Quả ${fallingAppleVal} đã bén rễ thành công! (+20 điểm)`);
+            renderTreeCanvas();
+            setTimeout(nextFallingApple, 900);
+        }
+
+        function clearTreeGrow() {
+            orchard = new OrchardBST();
+            orchard.insert(50);
+            playChiptune('boing');
+            renderTreeCanvas();
+            nextFallingApple();
+            showToast("Đã dọn dẹp vườn sẵn sàng trồng lại!");
+        }
+    </script>
+
+    <script>
+        // Global click handler on tree nodes
+        function onNodeClicked(node) {
+            playChiptune('boing');
+
+            if (currentMode === 'traversal') {
+                const targetNeed = traversalQueue[traversalIndex];
+                if (node.val === targetNeed) {
+                    playChiptune('ding', traversalIndex);
+                    traversedSet.add(node.val);
+                    traversalIndex++;
+                    score += 15 + combo * 2;
+                    combo++;
+                    showToast(`Bắn trúng nốt ${node.val}! 🎶`);
+
+                    if (traversalIndex === traversalQueue.length) {
+                        playChiptune('win');
+                        score += 50;
+                        triggerConfetti();
+                        showToast(`🎆 Tuyệt tác pháo hoa duyệt cây ${traversalType}! (+50 điểm)`);
+                        setTimeout(setupTraversalPuzzle, 1500);
+                    } else {
+                        renderTraversalDashboard();
+                        renderTreeCanvas();
+                    }
+                } else {
+                    playChiptune('wrong');
+                    combo = 0;
+                    showToast(`Chưa đúng nhịp rồi! Cần bấm quả ${targetNeed}!`, "error");
+                    updateStats();
+                }
+            } else if (currentMode === 'hunter') {
+                if (node.val === hunterTargetVal) {
+                    playChiptune('win');
+                    score += 50;
+                    triggerConfetti();
+                    showToast(`Tóm gọn hạt dẻ ${node.val}! (+50 điểm)`);
+                    newHunterQuest();
+                } else {
+                    showToast(`Đây là quả ${node.val}, hãy điều khiển Pi nhảy từng cành nhé!`, "info");
+                }
+            }
+        }
+
+        function switchMode(mode) {
+            playChiptune('boing');
+            currentMode = mode;
+            combo = 0;
+
+            // Reset tab styling
+            ['hunter', 'traversal', 'catch'].forEach(m => {
+                const btn = document.getElementById(`tab-${m}`);
+                if (m === mode) {
+                    btn.className = 'wood-button px-3.5 py-1.5 rounded-xl font-black text-xs sm:text-sm bg-amber-400 text-amber-950 border border-amber-600 flex items-center gap-1 shadow';
+                } else {
+                    btn.className = 'wood-button px-3.5 py-1.5 rounded-xl font-bold text-xs sm:text-sm bg-white/80 hover:bg-white text-slate-800 border border-slate-300 flex items-center gap-1';
+                }
+            });
+
+            if (mode === 'hunter') initHunterMode();
+            else if (mode === 'traversal') initTraversalMode();
+            else if (mode === 'catch') initCatchMode();
+        }
+
+        function regenerateRandomTree() {
+            playChiptune('boing');
+            orchard = new OrchardBST();
+            const set = new Set();
+            while (set.size < 7) {
+                set.add(Math.floor(Math.random() * 85) + 12);
+            }
+            Array.from(set).forEach(v => orchard.insert(v));
+
+            if (currentMode === 'hunter') newHunterQuest();
+            else if (currentMode === 'traversal') setupTraversalPuzzle();
+            else if (currentMode === 'catch') nextFallingApple();
+        }
+
+        function openHelpModal() {
+            playChiptune('boing');
+            document.getElementById('help-modal').classList.remove('hidden');
+        }
+
+        function closeHelpModal() {
+            playChiptune('boing');
+            document.getElementById('help-modal').classList.add('hidden');
+        }
+
+        // Start initial mode on page ready
+        window.addEventListener('load', () => {
+            initHunterMode();
+        });
+    </script>
+</body>
+</html>
